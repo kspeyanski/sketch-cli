@@ -33,7 +33,7 @@ const getAllLayers = (rootNode, symbolMastersByName = {}, symbolInstanceMiddlewa
       const symbolInstance = symbolMaster.getSymbolInstance({ x, y, width, height });
 
       symbolInstance.setName(symbolName);
-      symbolInstanceMiddleware({symbolInstance, symbolMaster, node, RESIZING_CONSTRAINTS});
+      symbolInstanceMiddleware({ symbolInstance, symbolMaster, node, RESIZING_CONSTRAINTS });
 
       return [symbolInstance];
     } else if (symbolInstanceChildren.has(node)) {
@@ -86,16 +86,22 @@ export function setupSymbols({ name }) {
   page.setName(name);
 }
 
-export function snapshotSymbols({ suffix = '', symbolLayerMiddleware = () => {}, symbolMiddleware = () => {}, symbolInstanceMiddleware = () => {} },) {
+export function snapshotSymbols({ suffix = '', symbolLayerMiddleware = () => { }, symbolMiddleware = () => { }, symbolInstanceMiddleware = () => { } }, ) {
   const nodes = Array.from(document.querySelectorAll('[data-sketch-symbol]'));
 
   const symbolMastersByName = nodes.reduce((obj, node) => {
     const name = node.dataset.sketchSymbol;
     const { left: x, top: y } = node.getBoundingClientRect();
+    const style = { styles: getComputedStyle(node) }
+    const { width, height } = node.getBoundingClientRect();
+    style["toJSON"] = () => {
+      return JSON.parse(JSON.stringify(style.styles));
+    }
 
-    const symbol = new SymbolMaster({ x, y });
+    const symbol = new SymbolMaster({ x, y, width, height });
     symbol.setName(`${name}${suffix}`);
-    symbolMiddleware({symbol, node, suffix, RESIZING_CONSTRAINTS});
+    symbol.setStyle(style);
+    symbolMiddleware({ symbol, node, suffix, RESIZING_CONSTRAINTS });
     obj[name] = symbol;
 
     return obj;
@@ -110,7 +116,7 @@ export function snapshotSymbols({ suffix = '', symbolLayerMiddleware = () => {},
     layers
       .filter(layer => layer !== null)
       .forEach(layer => {
-        symbolLayerMiddleware({layer, SVG, Text, ShapeGroup, Rectangle, RESIZING_CONSTRAINTS});
+        symbolLayerMiddleware({ layer, SVG, Text, ShapeGroup, Rectangle, RESIZING_CONSTRAINTS });
         symbol.addLayer(layer);
       });
 
